@@ -1,0 +1,248 @@
+ /****************************************************
+     * STYLES GÉNÉRAUX
+     ****************************************************/
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f2f2f2;
+      color: #333;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #fff;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      border-radius: 5px;
+    }
+    /* ******** En-tête fixe avec titre et boutons ******** */
+    .header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: #fff;
+      z-index: 1100;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .page-title {
+      margin: 0;
+      font-size: 24px;
+    }
+    /* Boutons du header */
+    #topButtons {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    #topButtons label {
+      cursor: pointer;
+      color: blue;
+      text-decoration: underline;
+    }
+    /* ******** Barre d'onglets fixe ******** */
+    .tabNav {
+      position: fixed;
+      top: 70px; /* hauteur du header */
+      left: 0;
+      right: 0;
+      background: #fff;
+      z-index: 1050;
+      border-bottom: 2px solid #ccc;
+    }
+    /* Titre de l'onglet sticky (dans chaque contenu) */
+    .tabLogo {
+      position: sticky;
+      top: 120px; /* header (70px) + barre d'onglets (~50px) */
+      background: #fff;
+      z-index: 1000;
+    }
+    /* Margin-top pour le formulaire pour éviter le chevauchement */
+    #userForm {
+      margin-top: 170px;
+    }
+
+    /****************************************************
+     * ONGLET NAVIGATION
+     ****************************************************/
+    .tabNav button {
+      background: #004080; /* Bleu plus foncé */
+      border: none;
+      outline: none;
+      padding: 12px 20px; /* Onglets plus larges */
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 12px;
+      transition: background-color 0.3s ease, color 0.3s ease;
+      border-right: 1px solid #ccc;
+    }
+    .tabNav button:last-child {
+      border-right: none;
+    }
+    .tabNav button:hover {
+      background-color: #0059b3;
+    }
+    .tabNav button.activeTab {
+      background-color: #ff4136; /* Fond rouge quand l'onglet est sélectionné */
+      color: #fff;
+    }
+
+    /****************************************************
+     * CONTENU D'ONGLET
+     ****************************************************/
+    .tabContent {
+      display: none;
+      padding: 20px 0;
+    }
+    .tabContent.activeTab {
+      display: block;
+    }
+
+    /****************************************************
+     * LOGO (Titre de chaque onglet)
+     ****************************************************/
+    .tabLogo img {
+      max-height: 50px;
+      margin-right: 15px;
+    }
+    .tabLogo h2 {
+      margin: 0;
+      font-size: 18px;
+      color: #333;
+    }
+
+    /****************************************************
+     * FORMULAIRES ET BLOCS
+     ****************************************************/
+    form {
+      display: block;
+      margin-bottom: 20px;
+    }
+    .form-section {
+      background-color: #fafafa;
+      padding: 15px;
+      border-radius: 5px;
+      border: 1px solid #ddd;
+      margin-bottom: 20px;
+    }
+    .form-section h3 {
+      background-color: #e0efff;
+      padding: 8px 12px;
+      border-radius: 4px;
+      color: #333;
+      margin-top: 0;
+      margin-bottom: 15px;
+    }
+    .form-section label {
+      font-weight: 500;
+      margin-top: 5px;
+      display: block;
+    }
+    .form-section input[type="text"],
+    .form-section input[type="number"],
+    .form-section input[type="time"],
+    .form-section textarea,
+    .form-section select {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 14px;
+      box-sizing: border-box;
+      margin-top: 5px;
+    }
+    .form-section input[disabled] {
+      background-color: #ececec;
+      color: #666;
+    }
+
+    /****************************************************
+     * TABLES
+     ****************************************************/
+    table {
+      border: 1px solid #ddd;
+      border-collapse: collapse;
+      width: 100%;
+      text-align: center;
+    }
+    table th, table td {
+      padding: 8px;
+      font-size: 14px;
+      border: 1px solid #ddd;
+    }
+    table thead {
+      background-color: #f0f0f0;
+    }
+
+    /****************************************************
+     * CARTE, BOUTONS
+     ****************************************************/
+    #map-container {
+      position: relative;
+      width: 100%;
+      height: 500px;
+      margin-bottom: 20px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    #map {
+      width: 100%;
+      height: 100%;
+    }
+    #drawingCanvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 1000;
+      pointer-events: none;
+    }
+    button {
+      display: inline-block;
+      padding: 10px 15px;
+      font-size: 14px;
+      border: none;
+      border-radius: 4px;
+      background-color: #3498db;
+      color: #fff;
+      cursor: pointer;
+      margin-right: 5px;
+      margin-bottom: 5px;
+      transition: background-color 0.3s ease, transform 0.2s;
+    }
+    button:hover {
+      background-color: #2980b9;
+      transform: scale(1.03);
+    }
+
+    /****************************************************
+     * CHECKBOX GRID
+     ****************************************************/
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 5px 10px;
+      margin-top: 5px;
+    }
+
+    /****************************************************
+     * GRAPHIQUE
+     ****************************************************/
+    #monthlyBarChart,
+    #monthlyBarChartForced {
+      background-color: #fff;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    /****************************************************
+     * STYLES SPÉCIAUX POUR L'ONGLET 9
+     ****************************************************/
+    #tab9.tabContent {
+      background-color: #fff8ef;
+    }

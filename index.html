@@ -1,0 +1,561 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FRH PRO  - v769</title> 
+
+  <!-- (1) Leaflet CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css"/>
+  <!-- (2) Leaflet Draw + GeometryUtil CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css"/>
+  <!-- Liens CSS pour Flatpickr -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+  <!-- (3) Leaflet JS -->
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- (4) Leaflet Draw JS -->
+  <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+  <!-- (5) GeometryUtil (pour la surface) -->
+  <script src="https://unpkg.com/leaflet-geometryutil@0.9.3/dist/leaflet.geometryutil.min.js"></script>
+  <!-- (6) html2canvas + jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <!-- Script de localisation français pour Flatpickr -->
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/fr.js"></script>
+  
+  <!-- Chart.js pour le diagramme en barres -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <!-- jspdf-autotable -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+  
+  <!-- Inclusion de pdf-lib pour la fusion de PDF -->
+  <script src="https://unpkg.com/pdf-lib/dist/pdf-lib.min.js"></script>
+
+  <link rel="stylesheet" href="style.css">
+  <script src="main.js" defer></script>
+</head>
+
+<body>
+  <div class="container">
+    <!-- En-tête fixe avec titre et boutons -->
+    <div class="header">
+      <h1 class="page-title">Formulaire FRH PRO</h1>
+      <div id="topButtons">
+        <input type="file" id="mapCaptureFile" accept="image/png, image/jpeg" style="display:none;" />
+        <label for="mapCaptureFile">Sélectionner la capture</label>
+        <button type="button" id="exportPDFBtn" onclick="generatePdfReport()">Générer Rapport PDF</button>
+        <button type="button" id="saveToFile">Télécharger les données</button>
+        <input type="file" id="loadFromFile" style="display: none;" />
+        <button type="button" id="uploadFile">Charger un fichier</button>
+      </div>
+    </div>
+
+    <!-- Barre d'onglets fixe -->
+    <div class="tabNav" id="topTabNav">
+      <button type="button" class="tablinks" onclick="openTab(event, 'tab1')">1. Localisation / Données Irradiation</button>
+      <button type="button" class="tablinks" onclick="openTab(event, 'tab2')">2. Potentiel de Production</button>
+      <button type="button" class="tablinks" onclick="openTab(event, 'tab3')">3. Production mensuel</button>
+      <button type="button" class="tablinks" onclick="openTab(event, 'tab4')">4. Infos société</button>
+      <button type="button" class="tablinks" onclick="openTab(event, 'tab5')">5. Infos toiture</button>
+      <button type="button" class="tablinks" onclick="openTab(event, 'tab6')">6. Périodes d'utilisation</button>
+      <button type="button" class="tablinks" onclick="openTab(event, 'tab7')">7. Conso mensuelle</button>
+      <button type="button" class="tablinks" onclick="openTab(event, 'tab8')">8. Préconisation</button>
+      <button type="button" class="tablinks" onclick="openTab(event, 'tab9')">9. Préconisation Sélection</button>
+      <button type="button" class="tablinks" onclick="openTab(event, 'tab10')">10. Commentaires</button>
+      <button type="button" class="tablinks" onclick="openTab(event, 'tab11')">11. Paramètres</button>
+      <button type="button" class="tablinks" onclick="openTab(event, 'tab12')">12. Plan de trésorerie</button>
+    </div>
+
+    <!-- Formulaire global -->
+    <form id="userForm">
+      <!-- TAB 1 : Localisation & Données Irradiation -->
+      <div id="tab1" class="tabContent">
+        <div class="tabLogo">
+          <img src="https://raw.githubusercontent.com/m2arek/parallele/main/frh_pro_logo.png" alt="FRH Pro Logo"/>
+          <h2>Localisation & Données Irradiation</h2>
+        </div>
+        <label for="address">Adresse :</label>
+        <input type="text" id="address" name="address" placeholder="Entrez une adresse" required />
+        <button type="button" id="addressSearchBtn">Rechercher</button>
+        <button type="button" id="toggleDrawingButton">Activer le dessin (main levée)</button>
+        <button type="button" id="toggleMeasureButton">Mesurer une surface</button>
+        <div id="map-container">
+          <div id="map"></div>
+          <canvas id="drawingCanvas"></canvas>
+        </div>
+        <div class="form-section">
+          <h3>Données irradiation</h3>
+          <label for="latitudeIrr">Latitude :</label>
+          <input type="text" id="latitudeIrr" name="latitudeIrr" readonly />
+          <label for="longitudeIrr">Longitude :</label>
+          <input type="text" id="longitudeIrr" name="longitudeIrr" readonly />
+          <label for="orientationIrr">Orientation :</label>
+          <select id="orientationIrr" name="orientationIrr">
+            <option value="0">SUD (0°)</option>
+            <option value="-90">EST (-90°)</option>
+            <option value="90">OUEST (90°)</option>
+            <option value="-45">SUD-EST (-45°)</option>
+            <option value="45">SUD-OUEST (45°)</option>
+          </select>
+          <label for="orientation">Orientation (vrai angle °) :</label>
+          <input type="text" id="orientation" name="orientation" readonly />
+          <label for="angleIrr">Angle (°) :</label>
+          <input type="number" id="angleIrr" name="angleIrr" value="35" />
+          <label for="productible">Productible :</label>
+          <input type="text" id="productible" name="productible" placeholder="kWh/kWc/an" readonly/>
+          <label for="territory">Territoire détecté :</label>
+          <input type="text" id="territory" name="territory" disabled />
+          <button type="button" id="calculateIrrButton">Calculer le productible</button>
+        </div>
+      </div><!-- fin tab1 -->
+
+      <!-- TAB 2 : Potentiel de production -->
+      <div id="tab2" class="tabContent">
+        <div class="tabLogo">
+          <img src="https://raw.githubusercontent.com/m2arek/parallele/main/frh_pro_logo.png" alt="FRH Pro Logo"/>
+          <h2>Potentiel de Production</h2>
+        </div>
+        <div class="form-section">
+          <h3>Potentiel de production</h3>
+          <label for="exclusionPercent">% surface exclusion :</label>
+          <input type="number" id="exclusionPercent" name="exclusionPercent" value="0" />
+          <label for="puissancePanneau">Puissance du panneau :</label>
+          <select id="puissancePanneau" name="puissancePanneau">
+            <option value="375" selected>375 Wc</option>
+            <option value="420">420 Wc</option>
+            <option value="440">440 Wc</option>
+            <option value="500">500 Wc</option>
+          </select>
+          <label for="nombrePVMax">Nombre de PV max :</label>
+          <input type="text" id="nombrePVMax" name="nombrePVMax" readonly />
+          <label for="puissanceMaxPV">Puissance max PV (kWc) :</label>
+          <input type="text" id="puissanceMaxPV" name="puissanceMaxPV" readonly />
+          <label for="productionInstall">Production en kWh de l'installation :</label>
+          <input type="text" id="productionInstall" name="productionInstall" readonly />
+        </div>
+      </div><!-- fin tab2 -->
+
+      <!-- TAB 3 : Production mensuel -->
+      <div id="tab3" class="tabContent">
+        <div class="tabLogo">
+          <img src="https://raw.githubusercontent.com/m2arek/parallele/main/frh_pro_logo.png" alt="FRH Pro Logo"/>
+          <h2>Production mensuel</h2>
+        </div>
+        <div class="form-section">
+          <h3>Production mensuel</h3>
+          <table id="monthlyProductionTable">
+            <thead>
+              <tr>
+                <th>Mois</th>
+                <th>Production mensuelle (kWh)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Rempli dynamiquement via fillMonthlyProductionTable -->
+            </tbody>
+          </table>
+        </div>
+      </div><!-- fin tab3 -->
+
+      <!-- TAB 4 : Infos société -->
+      <div id="tab4" class="tabContent">
+        <div class="tabLogo">
+          <img src="https://raw.githubusercontent.com/m2arek/parallele/main/frh_pro_logo.png" alt="FRH Pro Logo"/>
+          <h2>Informations sur la société</h2>
+        </div>
+        <div class="form-section">
+          <h3>Informations sur la société</h3>
+          <label for="Adresse">Adresse entrée :</label>
+          <input type="text" id="Adresse" name="Adresse" readonly />
+          <label for="companyName">Société :</label>
+          <input type="text" id="companyName" name="companyName"/>
+          <label for="activity">Activité :</label>
+          <input type="text" id="activity" name="activity"/>
+          <label for="Nom">Nom :</label>
+          <input type="text" id="Nom" name="Nom"/>
+          <label for="Prénom">Prénom :</label>
+          <input type="text" id="Prénom" name="Prénom"/>
+          <label for="Statut">Statut :</label>
+          <input type="text" id="Statut" name="Statut"/>
+          <label for="Propietaire/Locataire">Propietaire/Locataire :</label>
+          <select id="Propietaire/Locataire" name="Propietaire/Locataire">
+            <option value="" disabled selected>indiquer si propietaire ou locataire</option>
+            <option value="Proprietaire">Proprietaire</option>
+            <option value="Locataire">Locataire</option>
+          </select>
+          <label for="Annees presence">Annees presence :</label>
+          <input type="text" id="Annees presence" name="Annees presence" placeholder="Entrez le nombre d'Annees de presence" />
+        </div>
+      </div><!-- fin tab4 -->
+
+      <!-- TAB 5 : Infos toiture -->
+      <div id="tab5" class="tabContent">
+        <div class="tabLogo">
+          <img src="https://raw.githubusercontent.com/m2arek/parallele/main/frh_pro_logo.png" alt="FRH Pro Logo"/>
+          <h2>Informations sur la toiture</h2>
+        </div>
+        <div class="form-section">
+          <h3>Informations sur la toiture</h3>
+          <label for="Surface toiture">Surface toiture (m²) :</label>
+          <input type="number" id="Surface toiture" name="Surface toiture" />
+          <label for="Partage sa toiture">Partage sa toiture? :</label>
+          <select id="Partage sa toiture" name="Partage sa toiture">
+            <option value="" disabled selected>indiquer si la toiture est partagee</option>
+            <option value="Oui">Oui</option>
+            <option value="Non">Non</option>
+          </select>
+          <label for="Type de toiture">Type de toiture :</label>
+          <select id="Type de toiture" name="Type de toiture">
+            <option value="" disabled selected>Choisissez un Type de toiture</option>
+            <option value="2 pentes">2 pentes</option>
+            <option value="1 pente">1 pente</option>
+            <option value="Toit plat">Toit plat</option>
+          </select>
+          <label for="Pente toiture">Pente toiture (°) :</label>
+          <input type="number" id="Pente toiture" name="Pente toiture" />
+          <label for="Type de couverture">Type de couverture :</label>
+          <select id="Type de couverture" name="Type de couverture">
+            <option value="" disabled selected>Choisissez un type de couverture</option>
+            <option value="Bacs acier">Bacs acier</option>
+            <option value="Fibro ciment">Fibro ciment</option>
+            <option value="Tuiles">Tuiles</option>
+            <option value="Béton">Béton</option>
+          </select>
+          <label for="Type de charpente">Type de charpente :</label>
+          <select id="Type de charpente" name="Type de charpente">
+            <option value="" disabled selected>Choisissez un type de charpente</option>
+            <option value="Metallique">Métallique</option>
+            <option value="Bois">Bois</option>
+          </select>
+          <label for="Translucides">Présence de translucides :</label>
+          <select id="Translucides" name="Translucides">
+            <option value="" disabled selected>Presence de translucides</option>
+            <option value="Oui">Oui</option>
+            <option value="Non">Non</option>
+          </select>
+          <label for="Couvrir Translucides">Couvrir Translucides :</label>
+          <select id="Couvrir Translucides" name="Couvrir Translucides">
+            <option value="" disabled selected>Couvrir Translucides</option>
+            <option value="Oui">Oui</option>
+            <option value="Non">Non</option>
+          </select>
+        </div>
+      </div><!-- fin tab5 -->
+
+      <!-- TAB 6 : Périodes d'utilisation -->
+      <div id="tab6" class="tabContent">
+        <div class="tabLogo">
+          <img src="https://raw.githubusercontent.com/m2arek/parallele/main/frh_pro_logo.png" alt="FRH Pro Logo"/>
+          <h2>Périodes d'utilisation</h2>
+        </div>
+        <div class="form-section">
+          <h3>Periodes d'utilisation</h3>
+          <h4>Mois de congés</h4>
+          <div class="checkbox-grid">
+            <label><input type="checkbox" name="moisConges[]" value="Janvier" />Janvier</label>
+            <label><input type="checkbox" name="moisConges[]" value="Février" />Février</label>
+            <label><input type="checkbox" name="moisConges[]" value="Mars" />Mars</label>
+            <label><input type="checkbox" name="moisConges[]" value="Avril" />Avril</label>
+            <label><input type="checkbox" name="moisConges[]" value="Mai" />Mai</label>
+            <label><input type="checkbox" name="moisConges[]" value="Juin" />Juin</label>
+            <label><input type="checkbox" name="moisConges[]" value="Juillet" />Juillet</label>
+            <label><input type="checkbox" name="moisConges[]" value="Août" />Août</label>
+            <label><input type="checkbox" name="moisConges[]" value="Septembre" />Septembre</label>
+            <label><input type="checkbox" name="moisConges[]" value="Octobre" />Octobre</label>
+            <label><input type="checkbox" name="moisConges[]" value="Novembre" />Novembre</label>
+            <label><input type="checkbox" name="moisConges[]" value="Décembre" />Décembre</label>
+          </div>
+          <h4>Jours de congés</h4>
+          <div class="checkbox-grid">
+            <label><input type="checkbox" name="joursConges[]" value="Lundi" />Lundi</label>
+            <label><input type="checkbox" name="joursConges[]" value="Mardi" />Mardi</label>
+            <label><input type="checkbox" name="joursConges[]" value="Mercredi" />Mercredi</label>
+            <label><input type="checkbox" name="joursConges[]" value="Jeudi" />Jeudi</label>
+            <label><input type="checkbox" name="joursConges[]" value="Vendredi" />Vendredi</label>
+            <label><input type="checkbox" name="joursConges[]" value="Samedi" />Samedi</label>
+            <label><input type="checkbox" name="joursConges[]" value="Dimanche" />Dimanche</label>
+          </div>
+          <label for="heureDebut">Heure début travail :</label>
+          <input type="time" id="heureDebut" name="heureDebut" />
+          <label for="heureFin">Heure fin :</label>
+          <input type="time" id="heureFin" name="heureFin" />
+          <label for="Puissance compteur">Puissance compteur (Kva) :</label>
+          <input type="number" id="Puissance compteur" name="Puissance compteur" />
+        </div>
+      </div><!-- fin tab6 -->
+
+      <!-- TAB 7 : Conso mensuelle -->
+      <div id="tab7" class="tabContent">
+        <div class="tabLogo">
+          <img src="https://raw.githubusercontent.com/m2arek/parallele/main/frh_pro_logo.png" alt="FRH Pro Logo"/>
+          <h2>Consommation mensuelle</h2>
+        </div>
+        <div id="consumptionTableContainer" class="form-section">
+          <h3>Consommation mensuelle</h3>
+          <table id="consumptionTable">
+            <thead>
+              <tr>
+                <th style="width: 20%;">Mois</th>
+                <th style="width: 25%;">Consommation (€)</th>
+                <th style="width: 25%;">Consommation (kWh)</th>
+                <th style="width: 30%;">Coût par kWh (€)</th>
+              </tr>
+            </thead>
+            <tbody id="consumptionTableBody">
+              <tr>
+                <td><strong>Total annuel</strong></td>
+                <td id="totalEuros">-</td>
+                <td id="totalKwh">-</td>
+                <td id="totalCostPerKwh">-</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div><!-- fin tab7 -->
+
+      <!-- TAB 8 : Préconisation -->
+      <div id="tab8" class="tabContent">
+        <div class="tabLogo">
+          <img src="https://raw.githubusercontent.com/m2arek/parallele/main/frh_pro_logo.png" alt="FRH Pro Logo"/>
+          <h2>Préconisation</h2>
+        </div>
+        <div class="form-section">
+          <h3>Préconisation</h3>
+          <!-- Bloc récapitulatif placé en haut du contenu de l'onglet -->
+          <div id="preconisationSummary" style="margin-top:10px;">
+            <p><strong>Puissance préconisée :</strong> <span id="puissanceReco">-</span> kWc</p>
+            <p><strong>Coût de l'installation :</strong> <span id="coutInstallation">-</span> €</p>
+            <p><strong>Prime :</strong> <span id="primeValue">-</span> €</p>
+            <p><strong>Remise :</strong> <input type="number" id="remise" name="remise" value="0" style="width: 100px;" /> €</p>
+            <p><strong>Coût réel de l'installation :</strong> <span id="coutReelInstallation">-</span> €</p>
+            <p><strong>Gain total brut :</strong> <span id="gainSansInv">-</span></p>
+            <p><strong>Gain total net :</strong> <span id="gainAvecInv">-</span></p>
+            <p><strong>ROI (années) :</strong> <span id="roiResult">-</span></p>
+            <p><strong>Nombre de modules :</strong> <span id="nombreModules">-</span></p>
+            <p><strong>Surface de l'installation m² :</strong> <span id="surfaceInstallation">-</span></p>
+          </div>
+          <label for="annualPriceIncrease">Augmentation annuelle du prix de l'électricité (%):</label>
+          <input type="number" step="0.1" id="annualPriceIncrease" name="annualPriceIncrease" value="5" />
+          <label for="tarifRachat">Tarif de rachat du surplus (€/kWh) :</label>
+          <input type="number" step="0.0001" id="tarifRachat" name="tarifRachat" value="0.0761" disabled />
+          <label for="ratioDiurne">Ratio diurne (%) :</label>
+          <input type="number" id="ratioDiurne" name="ratioDiurne" value="60" min="0" max="100" />
+          <label>
+            <input type="checkbox" id="showKwhColumns" name="showKwhColumns" />
+            Kwh visible
+          </label>
+          <button type="button" id="calculatePreconisation">Calculer la préconisation</button>
+          <h4>Détails par mois (année 1)</h4>
+          <table id="preconisationMonthlyTable"></table>
+          <h4>Graphique (Détails par mois)</h4>
+          <canvas id="monthlyBarChart" width="600" height="300"></canvas>
+          <h4>Projection sur 20 ans</h4>
+          <table id="preconisationTable">
+            <thead>
+              <tr>
+                <th>Année</th>
+                <th>Facture Sans Centrale</th>
+                <th>Économies Autoconso</th>
+                <th>Facture Avec Centrale</th>
+                <th>Gains Revente</th>
+                <th>Prime (année 2)</th>
+                <th>Total Économies</th>
+                <th>Cumul economies</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+              <tr>
+                <th colspan="1">Totaux sur 20 ans</th>
+                <td id="totalSansPv">-</td>
+                <td id="totalAuto">-</td>
+                <td id="totalAvecPv">-</td>
+                <td id="totalRevente">-</td>
+                <td id="totalPrime">-</td>
+                <td id="totalEconomies">-</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div><!-- fin tab8 -->
+
+      <!-- TAB 9 : Préconisation Sélection -->
+      <div id="tab9" class="tabContent">
+        <div class="tabLogo">
+          <img src="https://raw.githubusercontent.com/m2arek/parallele/main/frh_pro_logo.png" alt="FRH Pro Logo"/>
+          <h2>Préconisation Sélection</h2>
+        </div>
+        <div class="form-section">
+          <h3>Préconisation Sélection</h3>
+          <!-- Bloc récapitulatif placé en haut -->
+          <div id="preconisationSummaryForced" style="margin-top:10px;">
+            <p><strong>Puissance préconisée (Sélection) :</strong> <span id="puissanceRecoForced">-</span> kWc</p>
+            <p><strong>Coût de l'installation (Sélection) :</strong> <span id="coutInstallationForced">-</span> €</p>
+            <p><strong>Prime :</strong> <span id="primeValueForced">-</span> €</p>
+            <p><strong>Remise :</strong> <input type="number" id="remiseForced" name="remiseForced" value="0" style="width: 100px;" /> €</p>
+            <p><strong>Coût réel de l'installation :</strong> <span id="coutReelInstallationForced">-</span> €</p>
+            <p><strong>Gain total brut :</strong> <span id="gainSansInvForced">-</span></p>
+            <p><strong>Gain total net :</strong> <span id="gainAvecInvForced">-</span></p>
+            <p><strong>ROI (années) :</strong> <span id="roiResultForced">-</span></p>
+            <p><strong>Nombre de modules :</strong> <span id="nombreModulesForced">-</span></p>
+            <p><strong>Surface de l'installation m² :</strong> <span id="surfaceInstallationForced">-</span></p>
+          </div>
+          <label for="forcedPower">Installation choisie (kWc) :</label>
+          <input type="number" id="forcedPower" name="forcedPower" value="10" min="1" />
+          <button type="button" id="applyForcedPreconisationBtn">Calculer la préconisation choisie</button>
+          <h4>Détails par mois (année 1) - Sélection</h4>
+          <table id="preconisationMonthlyTableForced"></table>
+          <h4>Graphique (Détails par mois) - Sélection</h4>
+          <canvas id="monthlyBarChartForced" width="600" height="300"></canvas>
+          <h4>Projection sur 20 ans - Sélection</h4>
+          <table id="preconisationTableForced">
+            <thead>
+              <tr>
+                <th>Année</th>
+                <th>Facture Sans Centrale</th>
+                <th>Économies Autoconso</th>
+                <th>Facture Avec Centrale</th>
+                <th>Gains Revente</th>
+                <th>Prime (année 2)</th>
+                <th>Total Économies</th>
+                <th>Cumul economies</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+              <tr>
+                <th colspan="1">Totaux sur 20 ans</th>
+                <td id="totalSansPvForced">-</td>
+                <td id="totalAutoForced">-</td>
+                <td id="totalAvecPvForced">-</td>
+                <td id="totalReventeForced">-</td>
+                <td id="totalPrimeForced">-</td>
+                <td id="totalEconomiesForced">-</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div><!-- fin tab9 -->
+
+      <!-- TAB 10 : Commentaires -->
+      <div id="tab10" class="tabContent">
+        <div class="tabLogo">
+          <img src="https://raw.githubusercontent.com/m2arek/parallele/main/frh_pro_logo.png" alt="FRH Pro Logo"/>
+          <h2>Commentaires</h2>
+        </div>
+        <div class="form-section">
+          <h3>RDV</h3>
+          <label for="rdvDate">Date du RDV :</label>
+          <input type="text" id="rdvDate" name="rdvDate" placeholder="Choisissez une date" />
+          <label for="rdvTime">Heure du RDV :</label>
+          <input type="time" id="rdvTime" name="rdvTime" />
+        </div>
+        <div class="form-section">
+          <h3>Commentaires</h3>
+          <label for="comments">Commentaires :</label>
+          <textarea id="comments" name="comments" placeholder="Entrez vos commentaires"></textarea>
+        </div>
+        <!-- Les éléments de capture, génération PDF, téléchargement et chargement de fichier sont désormais dans le header -->
+      </div><!-- fin tab10 -->
+
+      <!-- TAB 11 : Paramètres -->
+      <div id="tab11" class="tabContent">
+        <div class="tabLogo">
+          <img src="https://raw.githubusercontent.com/m2arek/parallele/main/frh_pro_logo.png" alt="FRH Pro Logo"/>
+          <h2>Paramètres</h2>
+        </div>
+        <div class="form-section">
+          <h3>Charges photovoltaïques courantes</h3>
+          <label for="assurance_dommages">Assurance dommages et RCP % :</label>
+          <input type="text" id="assurance_dommages" name="assurance_dommages" value="0.20" />
+          <label for="assurance_perte">Assurance perte d'exploitation % :</label>
+          <input type="text" id="assurance_perte" name="assurance_perte" value="0.30" />
+          <label for="cout_maintenance">Coût maintenance préventive/curative/nettoyage (€/kWc) :</label>
+          <input type="text" id="cout_maintenance" name="cout_maintenance" value="5.97" />
+        </div>
+        <div class="form-section">
+          <h3>Evolution liée au vieillissement de la centrale</h3>
+          <label for="cout_reparations">Coût réparations courantes % :</label>
+          <input type="text" id="cout_reparations" name="cout_reparations" value="0.19" />
+          <label for="cout_changement_onduleurs">Coût changement onduleurs :</label>
+          <input type="text" id="cout_changement_onduleurs" name="cout_changement_onduleurs" value="" placeholder="Saisir valeur" />
+          <label for="perte_puissance">Perte puissance annuelle des panneaux % :</label>
+          <input type="text" id="perte_puissance" name="perte_puissance" value="0.60" />
+        </div>
+        <div class="form-section">
+          <h3>Paramètres financiers généraux</h3>
+          <label for="inflation_estimee">Inflation estimée (%/an) :</label>
+          <input type="text" id="inflation_estimee" name="inflation_estimee" value="2.00" />
+          <label for="taux_emprunt">Taux emprunt % :</label>
+          <input type="text" id="taux_emprunt" name="taux_emprunt" value="2.00" />
+          <label for="duree_pret">Durée prêt en années :</label>
+          <input type="number" id="duree_pret" name="duree_pret" value="" placeholder="Saisir durée" />
+          <label for="taux_autofinancement">Taux autofinancement :</label>
+          <input type="text" id="taux_autofinancement" name="taux_autofinancement" value="" placeholder="Saisir taux" />
+          <label for="index_leasing">Index du leasing :</label>
+          <input type="text" id="index_leasing" name="index_leasing" value="1.837" />
+          <label for="duree_leasing">Durée du leasing (mois) :</label>
+          <input type="number" id="duree_leasing" name="duree_leasing" value="72" />
+        </div>
+      </div><!-- fin tab11 -->
+
+      <!-- TAB 12 : Plan de trésorerie -->
+<div id="tab12" class="tabContent">
+  <div class="tabLogo">
+    <img src="https://raw.githubusercontent.com/m2arek/parallele/main/frh_pro_logo.png" alt="FRH Pro Logo"/>
+    <h2>Plan de trésorerie</h2>
+  </div>
+  <div class="form-section">
+    <h3>Choix du mode de financement et du scénario</h3>
+    <label for="financementMode">Mode de financement :</label>
+    <select id="financementMode" name="financementMode">
+      <option value="banque">Financement bancaire</option>
+      <option value="leasing">Leasing</option>
+    </select>
+    
+    <!-- Nouveau sélecteur pour choisir le Leaser -->
+    <label for="leasingCompany">Leaser :</label>
+    <select id="leasingCompany" name="leasingCompany">
+      <option value="" disabled selected>Choisir un Leaser</option>
+      <option value="Leasecom">Leasecom</option>
+      <option value="Grenke">Grenke</option>
+    </select>
+    
+    <!-- Nouveau champ pour le nombre de loyers (durée en mois) -->
+    <label for="leaseDuration">Nombre de loyers (mois) :</label>
+    <input type="number" id="leaseDuration" name="leaseDuration" value="72" />
+    
+    <label for="scenarioPlan">Scénario de préconisation :</label>
+    <select id="scenarioPlan" name="scenarioPlan">
+      <option value="standard">Préconisation standard</option>
+      <option value="selection">Préconisation Sélection</option>
+    </select>
+    <button type="button" id="calculateTresorerieBtn">Calculer le plan de trésorerie</button>
+  </div>
+  <div class="form-section">
+    <h3>Plan de trésorerie (Annuel)</h3>
+    <table id="planTresorerieTable">
+      <thead id="planTresorerieHeader">
+        <tr>
+          <th>Année</th>
+          <th>Recettes d'exploitation<br/>(économies + revente + Prime)</th>
+          <th>Remboursement du prêt<br/>(ou Loyer)</th>
+          <th>Solde net actuel</th>
+        </tr>
+      </thead>
+      <tbody id="planTresorerieBody">
+        <!-- Lignes générées dynamiquement -->
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+    </form><!-- fin userForm -->
+  </div><!-- fin container -->
+</body>
+</html>
