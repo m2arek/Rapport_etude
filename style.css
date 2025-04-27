@@ -246,3 +246,10 @@
     #tab9.tabContent {
       background-color: #fff8ef;
     }
+    /* ****************************************************
+ * AGRANDIR LE CHAMP ADRESSE DANS L’ONGLET 1
+ **************************************************** */
+#address {
+  width: 600px;    /* ajuste la largeur à 600px (ou la valeur souhaitée) */
+  max-width: 100%; /* pour rester responsive sur les petits écrans */
+}
